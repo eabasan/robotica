@@ -182,25 +182,41 @@ class TurtlebotController(Node):
         if not self.path_received or len(self.path.poses) == 0:
             return subgoal
 
-        L = 0.3 # 30 cm
+        L = 0.25  # Distancia de lookahead (25 cm es ideal para pasillos estrechos)
 
-        # Por defecto, el objetivo es el final
-        subgoal = self.path.poses[-1] 
+        # 1. Encontrar el punto de la ruta más cercano al robot para saber dónde estamos
+        closest_idx = 0
+        min_dist = float("inf")
 
-        # Buscamos el punto G
-        for path_pose in self.path.poses:
+        for i, path_pose in enumerate(self.path.poses):
             path_pose_in_robot = self.utils.transform_pose(
-                path_pose, 'base_footprint', self.get_logger())
+                path_pose, "base_footprint", self.get_logger()
+            )
 
             if path_pose_in_robot is not None:
                 x = path_pose_in_robot.pose.position.x
                 y = path_pose_in_robot.pose.position.y
                 dist = math.sqrt(x**2 + y**2)
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_idx = i
 
-                if x > 0.0 and dist > L:
-                    subgoal = path_pose
-                    break
-        return subgoal
+        # 2. A partir de esa posición actual en la lista, buscar el primer punto hacia adelante a distancia L
+        for i in range(closest_idx, len(self.path.poses)):
+            path_pose = self.path.poses[i]
+            path_pose_in_robot = self.utils.transform_pose(
+                path_pose, "base_footprint", self.get_logger()
+            )
+
+            if path_pose_in_robot is not None:
+                x = path_pose_in_robot.pose.position.x
+                y = path_pose_in_robot.pose.position.y
+                dist = math.sqrt(x**2 + y**2)
+                if dist > L:
+                    return path_pose
+
+        # 3. Si estamos llegando al final y ningún punto supera L, el objetivo es el final
+        return self.path.poses[-1]
 
     def check_collision(self, linear, angular):
         """
@@ -236,7 +252,6 @@ class TurtlebotController(Node):
         Feel free to add the new variables and methods that you may need
         Returns (lin_vel, ang_vel)
         """
-        # Avanzamos un poco para no quedarnos atascados mientras giramos
         lin_vel = 0.0 
         ang_vel = 0.0
 
