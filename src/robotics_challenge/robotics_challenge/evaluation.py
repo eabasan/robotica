@@ -319,7 +319,7 @@ class Evaluation(Node):
             # update goal if possible
             if len(self.goals_queue) > 0:
                 self.current_goal = self.goals_queue.pop(0)
-                self.current_goal.header.seq += 1
+                #self.current_goal.header.seq += 1
                 self.goal_sent = False
             else:
                 #All the goals has been reached, finish the program
