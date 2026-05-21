@@ -111,7 +111,7 @@ class TurtlebotController(Node):
             alpha = math.atan2(y, x)
 
             # Velocidades: Ley de control
-            linear = 0.2 * rho
+            linear = 0.4 * rho
             angular = 0.4 * alpha
         else:
             linear = 0.0
@@ -225,15 +225,37 @@ class TurtlebotController(Node):
         Optionally, you can also use the velocity commands
         Returns True if possible collision, False otherwise
         """
+        """
+        Check for possible collisions
+        Modificado con modo Sprint Final para permitir entrar en recovecos estrechos
+        """
         if not self.laser_received:
             return False
 
         num_puntos = len(self.laser.ranges)
-        limite_seguridad = 0.35
+        limite_seguridad = 0.22
+
+        # === NUEVO: MODO SPRINT FINAL ===
+        # Si estamos muy cerca del objetivo final, bajamos la guardia con las paredes
+        if self.path_received and len(self.path.poses) > 0:
+            final_goal = self.path.poses[-1]
+            final_in_robot = self.utils.transform_pose(
+                final_goal, "base_footprint", self.get_logger()
+            )
+
+            if final_in_robot is not None and final_in_robot.header.frame_id != "":
+                xf = final_in_robot.pose.position.x
+                yf = final_in_robot.pose.position.y
+                dist_to_final = math.sqrt(xf**2 + yf**2)
+
+                # Si estamos a menos de 40 cm del cono, reducimos el margen a 13 cm
+                # (lo justo para no chocar físicamente el chasis pero poder entrar al rincón)
+                if dist_to_final < 0.40:
+                    limite_seguridad = 0.13
+        # =================================
 
         for i in range(num_puntos):
             # Solo nos interesan los puntos del frente (aprox. entre 0-45 y 315-360)
-            # i < 45 es la izquierda, i > (num_puntos - 45) es la derecha
             if i < 45 or i > (num_puntos - 45):
                 distancia = self.laser.ranges[i]
 
@@ -252,7 +274,7 @@ class TurtlebotController(Node):
         Feel free to add the new variables and methods that you may need
         Returns (lin_vel, ang_vel)
         """
-        lin_vel = 0.0 
+        lin_vel = 0.05 
         ang_vel = 0.0
 
         # Si todavía no hay datos, no nos movemos

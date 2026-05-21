@@ -163,7 +163,7 @@ class Evaluation(Node):
         if(m < self.metrics.min_dist_to_obs):
             self.metrics.min_dist_to_obs = m
         if(m <= self.min_collision):
-            rospy.logwarn('Collision penalty!!!')
+            #rospy.logwarn('Collision penalty!!!')
             self.metrics.collision_penalty += 1
         
 
